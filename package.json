@@ -1,0 +1,9 @@
+{
+  "name": "sjs-scheduler-v2",
+  "private": true,
+  "version": "3.0.0",
+  "dependencies": {
+    "tsdav": "^2.1.7",
+    "ical.js": "^2.2.1"
+  }
+}

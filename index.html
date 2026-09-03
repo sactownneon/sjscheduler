@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Schedule with Joe | SJ's Disc Jockey</title>
+  <style>
+    :root{
+      --ink:#111111;
+      --paper:#fffaf8;
+      --pink:#ff4f91;
+      --pink2:#ff79aa;
+      --muted:#6f6b6d;
+      --line:#e9dfe3;
+      --card:#ffffff;
+      --ok:#16865f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:
+      radial-gradient(circle at 12% 8%,rgba(255,79,145,.10),transparent 30rem),
+      radial-gradient(circle at 88% 2%,rgba(255,121,170,.09),transparent 28rem),
+      var(--paper);
+      color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+    .wrap{max-width:1080px;margin:auto;padding:34px 20px 64px}
+    .brand{text-align:center;margin-bottom:26px}
+    .eyebrow{text-transform:uppercase;letter-spacing:.20em;font-weight:800;font-size:12px}
+    h1{font-size:clamp(38px,7vw,74px);line-height:.93;margin:10px 0 14px;font-weight:900;letter-spacing:-.05em}
+    .pink{color:var(--pink)}
+    .sub{max-width:660px;margin:0 auto;color:var(--muted);font-size:17px;line-height:1.55}
+    .panel{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:28px;box-shadow:0 18px 60px rgba(0,0,0,.08);padding:24px}
+    .steps{display:flex;gap:8px;justify-content:center;margin:0 0 22px;flex-wrap:wrap}
+    .step{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:999px;background:#f5eef1;color:#92878c}
+    .step.active{background:var(--ink);color:white}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .type{appearance:none;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:22px;padding:22px;cursor:pointer;transition:.18s ease;min-height:185px}
+    .type:hover{transform:translateY(-2px);border-color:#d9c5cd}
+    .type.selected{border-color:var(--pink);box-shadow:0 0 0 4px rgba(255,79,145,.10)}
+    .type .icon{font-size:28px}
+    .type h2{margin:12px 0 7px;font-size:24px;letter-spacing:-.03em}
+    .type p{margin:0;color:var(--muted);line-height:1.45}
+    .tag{display:inline-block;margin-top:14px;font-weight:800;font-size:12px;background:#fff0f6;color:#b72863;padding:7px 10px;border-radius:999px}
+    .section{display:none}
+    .section.active{display:block}
+    .date-time{display:grid;grid-template-columns:1.05fr .95fr;gap:20px}
+    .box{border:1px solid var(--line);border-radius:20px;padding:18px;background:white}
+    .box h3{margin:0 0 14px;font-size:18px}
+    .dates{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+    .datebtn,.slot{border:1px solid var(--line);background:white;border-radius:14px;padding:12px 8px;cursor:pointer;font-weight:800}
+    .datebtn span{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:3px}
+    .datebtn.selected,.slot.selected{background:var(--ink);color:white;border-color:var(--ink)}
+    .datebtn.selected span{color:#ddd}
+    .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-height:360px;overflow:auto}
+    .slot{font-size:14px}
+    .note{font-size:13px;color:var(--muted);line-height:1.45;margin-top:12px}
+    .actions{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+    .btn{border:0;border-radius:999px;padding:14px 20px;font-weight:900;font-size:15px;cursor:pointer}
+    .btn.primary{background:var(--pink);color:white}
+    .btn.dark{background:var(--ink);color:white}
+    .btn.ghost{background:#f4ecef;color:var(--ink)}
+    .btn:disabled{opacity:.42;cursor:not-allowed}
+    form{max-width:680px;margin:auto}
+    .field{margin-bottom:14px}
+    label{display:block;font-size:13px;font-weight:900;margin:0 0 7px}
+    input,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:14px;font:inherit;background:white}
+    input:focus,textarea:focus{outline:3px solid rgba(255,79,145,.13);border-color:var(--pink)}
+    textarea{min-height:96px;resize:vertical}
+    .summary{background:#fff2f7;border-radius:18px;padding:16px;margin-bottom:18px;line-height:1.55}
+    .success{text-align:center;padding:34px 12px}
+    .check{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;background:#e8f7f1;color:var(--ok);font-size:38px;font-weight:900}
+    .success h2{font-size:36px;margin:0 0 10px;letter-spacing:-.04em}
+    .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}
+    .demo{margin:0 auto 18px;max-width:770px;border:1px dashed #cfae7d;background:#fff8e9;color:#6a5028;padding:11px 14px;border-radius:13px;font-size:13px;line-height:1.45}
+    @media(max-width:760px){
+      .grid,.date-time{grid-template-columns:1fr}
+      .dates{grid-template-columns:repeat(2,1fr)}
+      .slots{grid-template-columns:repeat(2,1fr)}
+      .panel{padding:17px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="eyebrow">SJ's Disc Jockey</div>
+    <h1>let's <span class="pink">hang out.</span></h1>
+    <p class="sub">Pick the kind of conversation that works best for you. Simple scheduling, no back-and-forth.</p>
+  </div>
+
+
+  <div class="panel">
+    <div class="steps">
+      <div class="step active" id="st1">1 · Choose</div>
+      <div class="step" id="st2">2 · Time</div>
+      <div class="step" id="st3">3 · Details</div>
+    </div>
+
+    <section id="choose" class="section active">
+      <div class="grid">
+        <button class="type" data-id="phone" data-title="Chat with Joe" data-duration="30" data-mode="Phone Call">
+          <div class="icon">☎</div><h2>Chat with Joe</h2>
+          <p>A quick, easy phone conversation with Joe.</p><span class="tag">30 minutes · phone</span>
+        </button>
+        <button class="type" data-id="hangout" data-title="Zoom Hangout" data-duration="30" data-mode="Zoom">
+          <div class="icon">▣</div><h2>Zoom Hangout</h2>
+          <p>Hop on video and talk through whatever is on your mind.</p><span class="tag">30 minutes · Zoom</span>
+        </button>
+        <button class="type" data-id="planning" data-title="Zoom Planning Session" data-duration="60" data-mode="Zoom">
+          <div class="icon">♪</div><h2>Zoom Planning Session</h2>
+          <p>A longer session for booked couples to work through wedding plans.</p><span class="tag">60 minutes · Zoom</span>
+        </button>
+      </div>
+      <div class="actions"><span></span><button id="toTime" class="btn primary" disabled>Choose a time →</button></div>
+    </section>
+
+    <section id="time" class="section">
+      <div class="date-time">
+        <div class="box"><h3>Choose a day</h3><div class="dates" id="dates"></div>
+          <div class="note">Monday appointments begin at noon. Tuesday–Thursday appointments begin at 9 AM. Friday–Sunday are unavailable.</div>
+        </div>
+        <div class="box"><h3>Choose a time</h3><div class="slots" id="slots"></div>
+          <div class="note">A 15-minute buffer is reserved between appointments.</div>
+        </div>
+      </div>
+      <div class="actions"><button class="btn ghost" id="back1">← Back</button><button id="toDetails" class="btn primary" disabled>Continue →</button></div>
+    </section>
+
+    <section id="details" class="section">
+      <form id="bookingForm">
+        <div class="summary" id="summary"></div>
+        <div class="field"><label for="name">Your name</label><input id="name" required autocomplete="name"></div>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" required autocomplete="email"></div>
+        <div class="field"><label for="phone">Phone number</label><input id="phone" type="tel" required autocomplete="tel"></div>
+        <div class="field"><label for="notes">Anything you'd like me to know? <span style="font-weight:500;color:#888">(optional)</span></label><textarea id="notes"></textarea></div>
+        <div class="actions"><button type="button" class="btn ghost" id="back2">← Back</button><button type="submit" class="btn dark">Test selection</button></div>
+      </form>
+    </section>
+
+    <section id="success" class="section success">
+      <div class="check">✓</div>
+      <h2>calendar availability confirmed.</h2>
+      <p id="successText"></p>
+      <button class="btn primary" onclick="location.reload()">Schedule another</button>
+    </section>
+  </div>
+  <div class="footer">SJ's Disc Jockey · Sacramento-ish weddings · sjsdiscjockey.com</div>
+</div>
+
+<script>
+const state={type:null,date:null,time:null};
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+function show(id, step){
+  $$('.section').forEach(x=>x.classList.remove('active')); $('#'+id).classList.add('active');
+  $$('.step').forEach(x=>x.classList.remove('active')); $('#st'+step).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$$('.type').forEach(b=>b.addEventListener('click',()=>{
+  $$('.type').forEach(x=>x.classList.remove('selected')); b.classList.add('selected');
+  state.type={id:b.dataset.id,title:b.dataset.title,duration:+b.dataset.duration,mode:b.dataset.mode};
+  $('#toTime').disabled=false;
+}));
+$('#toTime').onclick=()=>{buildDates();show('time',2)};
+$('#back1').onclick=()=>show('choose',1);
+$('#back2').onclick=()=>show('time',2);
+
+function buildDates(){
+  const holder=$('#dates'); holder.innerHTML='';
+  let d=new Date(); d.setHours(12,0,0,0); let count=0, guard=0;
+  while(count<12 && guard<90){
+    guard++; d=new Date(d.getTime()+86400000);
+    const day=d.getDay();
+    if(day>=1 && day<=4){
+      const btn=document.createElement('button'); btn.className='datebtn';
+      const iso=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+      btn.dataset.date=iso;
+      btn.innerHTML=d.toLocaleDateString(undefined,{weekday:'short'})+'<span>'+d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+'</span>';
+      btn.onclick=()=>selectDate(btn,d);
+      holder.appendChild(btn); count++;
+    }
+  }
+}
+function selectDate(btn,d){
+  $$('.datebtn').forEach(x=>x.classList.remove('selected')); btn.classList.add('selected');
+  state.date=new Date(d); state.time=null; $('#toDetails').disabled=true; buildSlots();
+}
+function fmt(h,m){
+  const dt=new Date(2000,0,1,h,m); return dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+}
+async function buildSlots(){
+  const holder=$('#slots'); holder.innerHTML='<div class="note">Checking Joe’s calendar…</div>';
+  $('#toDetails').disabled=true;
+  try{
+    const iso=[state.date.getFullYear(),String(state.date.getMonth()+1).padStart(2,'0'),String(state.date.getDate()).padStart(2,'0')].join('-');
+    const r=await fetch('/.netlify/functions/availability?date='+encodeURIComponent(iso)+'&duration='+state.type.duration);
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||'Calendar unavailable');
+    holder.innerHTML='';
+    const diag=document.createElement('div');
+    diag.className='note';
+    diag.style.gridColumn='1/-1';
+    diag.innerHTML='Calendar check: '+(data.busyCount??'?')+' busy event(s) found across '+(data.queriedCalendars??data.calendarCount??'?')+' calendar(s).';
+    holder.appendChild(diag);
+    if(!data.slots.length){
+      holder.innerHTML+='<div class="note">No openings on this day. Please choose another day.</div>'; return;
+    }
+    data.slots.forEach(s=>{
+      const btn=document.createElement('button');btn.className='slot';btn.textContent=s.label;btn.dataset.iso=s.start;
+      btn.onclick=()=>{$$('.slot').forEach(x=>x.classList.remove('selected'));btn.classList.add('selected');state.time=btn.textContent;state.startISO=s.start;$('#toDetails').disabled=false};
+      holder.appendChild(btn);
+    });
+  }catch(err){
+    holder.innerHTML='<div class="note"><strong>Calendar connection needs attention.</strong><br>'+err.message+'</div>';
+  }
+}
+$('#toDetails').onclick=()=>{
+  const dateText=state.date.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  $('#summary').innerHTML='<strong>'+state.type.title+'</strong><br>'+dateText+' at '+state.time+'<br>'+state.type.duration+' minutes · '+state.type.mode;
+  show('details',3);
+}
+$('#bookingForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const isZoom=state.type.mode==='Zoom';
+  $('#successText').innerHTML='<strong>'+state.type.title+'</strong> at <strong>'+state.time+'</strong> passed the availability test.<br><br>No appointment was created yet. This V2 deployment is specifically for verifying that Apple Calendar busy times are being removed correctly.';
+  show('success',3);
+});
+</script>
+</body>
+</html>
