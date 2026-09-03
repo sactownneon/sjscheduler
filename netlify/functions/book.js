@@ -25,6 +25,68 @@ function utcICS(d) {
   return `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
 }
 
+async function getZoomAccessToken() {
+  const accountId=process.env.ZOOM_ACCOUNT_ID;
+  const clientId=process.env.ZOOM_CLIENT_ID;
+  const clientSecret=process.env.ZOOM_CLIENT_SECRET;
+  if(!accountId || !clientId || !clientSecret) {
+    throw new Error("Zoom credentials are missing in Netlify.");
+  }
+
+  const auth=Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const url=`https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${encodeURIComponent(accountId)}`;
+  const r=await fetch(url,{
+    method:"POST",
+    headers:{
+      "Authorization":`Basic ${auth}`,
+      "Content-Type":"application/x-www-form-urlencoded"
+    }
+  });
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok || !data.access_token) {
+    throw new Error(`Zoom OAuth failed (${r.status}): ${data.reason||data.error||data.message||"Unknown error"}`);
+  }
+  return data.access_token;
+}
+
+async function createZoomMeeting({title,start,duration,name,email}) {
+  const token=await getZoomAccessToken();
+  const r=await fetch("https://api.zoom.us/v2/users/me/meetings",{
+    method:"POST",
+    headers:{
+      "Authorization":`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      topic:`${title} - ${name}`,
+      type:2,
+      start_time:start.toISOString(),
+      duration,
+      timezone:"America/Los_Angeles",
+      agenda:`Scheduled through SJ's Disc Jockey scheduler for ${name} (${email}).`,
+      settings:{
+        waiting_room:true,
+        join_before_host:false,
+        participant_video:true,
+        host_video:true,
+        mute_upon_entry:false,
+        approval_type:2,
+        audio:"voip"
+      }
+    })
+  });
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok || !data.join_url) {
+    throw new Error(`Zoom meeting creation failed (${r.status}): ${data.message||data.reason||"Unknown error"}`);
+  }
+  return {
+    id:data.id,
+    joinUrl:data.join_url,
+    startUrl:data.start_url||null,
+    password:data.password||null
+  };
+}
+
 function parseICSDate(v) {
   if (!v) return null;
   v = v.trim();
@@ -94,7 +156,7 @@ exports.handler = async (event) => {
     const endMinutes=(+ep.hour)*60+(+ep.minute);
     const open=wd===1?12*60:9*60;
     if(wd<1 || wd>4 || startMinutes<open || endMinutes>21*60)
-      return reply(409,{error:"That time is outside Joe’s booking hours."});
+      return reply(409,{error:"That time is outside Joeâs booking hours."});
 
     const client=await createDAVClient({
       serverUrl:"https://caldav.icloud.com",
@@ -134,6 +196,17 @@ exports.handler = async (event) => {
     const target=matches[targetNumber-1] || matches[0] || calendars[0];
     if(!target) return reply(502,{error:"Could not select an iCloud calendar for the booking."});
 
+    let zoom=null;
+    if(kind.mode==="Zoom") {
+      zoom=await createZoomMeeting({
+        title:kind.title,
+        start,
+        duration:kind.duration,
+        name,
+        email
+      });
+    }
+
     const uid=crypto.randomUUID();
     const filename=`sjs-${uid}.ics`;
     const description=[
@@ -142,7 +215,7 @@ exports.handler = async (event) => {
       `Email: ${email}`,
       `Phone: ${phone}`,
       notes ? `Notes: ${notes}` : null,
-      kind.mode==="Zoom" ? "Zoom link: pending (Zoom integration not connected yet)" : "Meeting type: phone call"
+      zoom ? `Zoom join link: ${zoom.joinUrl}` : "Meeting type: phone call"
     ].filter(Boolean).join("\n");
 
     const ics=[
@@ -157,6 +230,7 @@ exports.handler = async (event) => {
       `DTEND:${utcICS(end)}`,
       `SUMMARY:${escICS(kind.title+" - "+name)}`,
       `DESCRIPTION:${escICS(description)}`,
+      ...(zoom ? [`LOCATION:${escICS("Zoom - "+zoom.joinUrl)}`, `URL:${escICS(zoom.joinUrl)}`] : []),
       "STATUS:CONFIRMED",
       "TRANSP:OPAQUE",
       "END:VEVENT",
@@ -178,7 +252,9 @@ exports.handler = async (event) => {
       appointmentType:kind.title,
       start:start.toISOString(),
       end:end.toISOString(),
-      calendarName:target.displayName||"Calendar"
+      calendarName:target.displayName||"Calendar",
+      zoomJoinUrl:zoom?.joinUrl||null,
+      zoomMeetingId:zoom?.id||null
     });
   } catch (e) {
     console.error(e);
