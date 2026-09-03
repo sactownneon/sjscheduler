@@ -9,3 +9,4 @@ This version:
 
 Deploy to the existing sjscheduler Netlify project exactly like V2.
 Then test the same iCloud event. If X is 1 or more, the occupied time should be removed.
+v4 public deploy
