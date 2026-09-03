@@ -131,7 +131,7 @@
         <div class="field"><label for="email">Email</label><input id="email" type="email" required autocomplete="email"></div>
         <div class="field"><label for="phone">Phone number</label><input id="phone" type="tel" required autocomplete="tel"></div>
         <div class="field"><label for="notes">Anything you'd like me to know? <span style="font-weight:500;color:#888">(optional)</span></label><textarea id="notes"></textarea></div>
-        <div class="actions"><button type="button" class="btn ghost" id="back2">← Back</button><button type="submit" class="btn dark">Test selection</button></div>
+        <div class="actions"><button type="button" class="btn ghost" id="back2">← Back</button><button type="submit" class="btn dark" id="bookBtn">Book appointment</button></div>
       </form>
     </section>
 
@@ -217,11 +217,45 @@ $('#toDetails').onclick=()=>{
   $('#summary').innerHTML='<strong>'+state.type.title+'</strong><br>'+dateText+' at '+state.time+'<br>'+state.type.duration+' minutes · '+state.type.mode;
   show('details',3);
 }
-$('#bookingForm').addEventListener('submit',e=>{
+$('#bookingForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  const isZoom=state.type.mode==='Zoom';
-  $('#successText').innerHTML='<strong>'+state.type.title+'</strong> at <strong>'+state.time+'</strong> passed the availability test.<br><br>No appointment was created yet. This V2 deployment is specifically for verifying that Apple Calendar busy times are being removed correctly.';
-  show('success',3);
+  const bookBtn=$('#bookBtn');
+  bookBtn.disabled=true;
+  const originalText=bookBtn.textContent;
+  bookBtn.textContent='Booking…';
+
+  try{
+    const payload={
+      appointmentType: state.type.id,
+      appointmentTitle: state.type.title,
+      duration: state.type.duration,
+      mode: state.type.mode,
+      start: state.startISO,
+      name: $('#name').value.trim(),
+      email: $('#email').value.trim(),
+      phone: $('#phone').value.trim(),
+      notes: $('#notes').value.trim()
+    };
+
+    const r=await fetch('/.netlify/functions/book',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||'Could not create appointment.');
+
+    const isZoom=state.type.mode==='Zoom';
+    $('#successText').innerHTML='<strong>'+state.type.title+'</strong> is booked for <strong>'+state.time+'</strong> on '+
+      state.date.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+'.<br><br>'+
+      'The appointment has been added to Joe’s iCloud Calendar.'+
+      (isZoom?'<br><br><strong>Zoom is not connected yet.</strong> We will add automatic Zoom-link creation in the next step.':'');
+    show('success',3);
+  }catch(err){
+    alert(err.message);
+    bookBtn.disabled=false;
+    bookBtn.textContent=originalText;
+  }
 });
 </script>
 </body>
