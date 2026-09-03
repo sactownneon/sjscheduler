@@ -173,7 +173,8 @@ function buildDates(){
       const iso=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
       btn.dataset.date=iso;
       btn.innerHTML=d.toLocaleDateString(undefined,{weekday:'short'})+'<span>'+d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+'</span>';
-      btn.onclick=()=>selectDate(btn,d);
+      const dateForButton = new Date(d);
+      btn.onclick=()=>selectDate(btn,dateForButton);
       holder.appendChild(btn); count++;
     }
   }
