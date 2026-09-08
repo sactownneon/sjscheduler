@@ -247,9 +247,11 @@ $('#bookingForm').addEventListener('submit',async e=>{
 
     const isZoom=state.type.mode==='Zoom';
     $('#successText').innerHTML='<strong>'+state.type.title+'</strong> is booked for <strong>'+state.time+'</strong> on '+
-      state.date.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+'.<br><br>'+
+      state.date.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+'.<br><br>'+ 
       'The appointment has been added to Joe’s iCloud Calendar.'+
-      (isZoom?'<br><br><strong>Zoom is not connected yet.</strong> We will add automatic Zoom-link creation in the next step.':'');
+      (isZoom && data.zoomJoinUrl
+        ? '<br><br><strong>Your Zoom link has been created and emailed to you.</strong><br><a href="'+data.zoomJoinUrl+'" target="_blank" rel="noopener">Open Zoom meeting</a>'
+        : (data.emailSent ? '<br><br><strong>Your confirmation email has been sent.</strong>' : ''));
     show('success',3);
   }catch(err){
     alert(err.message);
