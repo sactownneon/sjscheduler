@@ -156,7 +156,7 @@ exports.handler = async (event) => {
     const endMinutes=(+ep.hour)*60+(+ep.minute);
     const open=wd===1?12*60:9*60;
     if(wd<1 || wd>4 || startMinutes<open || endMinutes>21*60)
-      return reply(409,{error:"That time is outside Joeâs booking hours."});
+      return reply(409,{error:"That time is outside Joe’s booking hours."});
 
     const client=await createDAVClient({
       serverUrl:"https://caldav.icloud.com",
@@ -247,6 +247,69 @@ exports.handler = async (event) => {
       iCalString:ics
     });
 
+
+    // Send the client a confirmation email through Resend.
+    // Email failure will NOT cancel an otherwise successful booking.
+    let emailSent=false;
+
+    try {
+      const resendKey=process.env.RESEND_API_KEY;
+      if(!resendKey) throw new Error("RESEND_API_KEY is missing.");
+
+      const when=new Intl.DateTimeFormat("en-US",{
+        timeZone:"America/Los_Angeles",
+        weekday:"long",
+        month:"long",
+        day:"numeric",
+        year:"numeric",
+        hour:"numeric",
+        minute:"2-digit",
+        timeZoneName:"short"
+      }).format(start);
+
+      const message=[
+        `Hi ${name},`,
+        "",
+        `Your ${kind.title} with SJ's Disc Jockey is confirmed.`,
+        "",
+        `Date & time: ${when}`,
+        `Duration: ${kind.duration} minutes`,
+        zoom ? `Zoom link: ${zoom.joinUrl}` : "Joe will call you at the phone number you provided.",
+        "",
+        "If you need to make a change, simply reply to this email.",
+        "",
+        "SJ's Disc Jockey",
+        "sjsdiscjockey.com"
+      ].join("\n");
+
+      const emailResponse=await fetch("https://api.resend.com/emails",{
+        method:"POST",
+        headers:{
+          "Authorization":`Bearer ${resendKey}`,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          from:"SJ's Disc Jockey <appointments@sjsdiscjockey.com>",
+          to:[email],
+          reply_to:"sjsdiscjockey@yahoo.com",
+          subject:`Your ${kind.title} is confirmed`,
+          text:message
+        })
+      });
+
+      const emailData=await emailResponse.json().catch(()=>({}));
+
+      if(!emailResponse.ok) {
+        throw new Error(
+          `Resend failed (${emailResponse.status}): ${emailData.message||"Unknown email error"}`
+        );
+      }
+
+      emailSent=true;
+    } catch(emailError) {
+      console.error("Confirmation email failed:",emailError);
+    }
+
     return reply(200,{
       ok:true,
       appointmentType:kind.title,
@@ -254,7 +317,8 @@ exports.handler = async (event) => {
       end:end.toISOString(),
       calendarName:target.displayName||"Calendar",
       zoomJoinUrl:zoom?.joinUrl||null,
-      zoomMeetingId:zoom?.id||null
+      zoomMeetingId:zoom?.id||null,
+      emailSent
     });
   } catch (e) {
     console.error(e);
